@@ -1,21 +1,16 @@
 #install.packages("dplyr")
 #install.packages("sna")
-#install.packages("matrixStats")
 
 library('sna')
 library('dplyr')
-library('matrixStats')
 
-out_file = 'out/can/7.csv'
+out_file = 'out/blank.csv'
 head_no = 0
 no_iters = 10
 
-table_dist <- function(a, method) {
-  # method for constrution of distance tables
-  #tab = as.matrix(dist(a) )
-  tab = as.matrix(dist(a, method=method) )
-  tab[is.na(tab)] <- 0
-  return (round(tab / max(tab), 10))
+table_dist <- function(a) {
+  tab = as.matrix(dist(a))
+  return (round(tab / max(tab), 6))
 }
 
 do_htable <- function(a, b) {
@@ -29,13 +24,13 @@ do_htable <- function(a, b) {
 # a for components
 # b for geographical variables
 find_hd <- function(a, b) {
-  ad = table_dist(a, 'canberra')
+  ad = table_dist(a)
   
   best_hd = 10000000000
   best_coeffs = c(rep(NA, times = 6))
   
   hd <- function(b) {
-    bd = table_dist(b, 'euclidian')
+    bd = table_dist(b)
     as.double(hdist(do_htable(ad, bd), normalize=TRUE, mode='graph', g1=c(1), g2=(2)))
     #as.double(gcor(do_htable(ad, bd), mode='graph', g1=c(1), g2=(2)))
   }
@@ -60,22 +55,21 @@ find_hd <- function(a, b) {
   #   }
   # }
   
-
+  
   processed = 0
   start_time = proc.time()
-
+  
   # weights = 1:no_iters / no_iters
   # weights = c(0.2, 0.8)
   one = c(1)
   all = c(0:100/100)
-  #ws = c(0.23,	0.67,	0.6,	0.55,	0.69,	0.78)
   
-  ws1 = c(28:30/100) # slope 125
-  ws2 = c(18:21/100) # srtm 29
-  ws3 = c(71:73/100) # tpi 117
-  ws4 = c(10:16/100) # twi 66
-  ws5 = c(98:100/100) # coarse
-  ws6 = c(93:95/100) # water
+  ws1 = c(23:25/100)
+  ws2 = c(65:67/100)
+  ws3 = c(60:67/100)
+  ws4 = c(52:57/100)
+  ws5 = c(68:72/100)
+  ws6 = c(76:82/100)
   no_iters = length(ws1) * length(ws2) * length(ws3) * length(ws4) * length(ws5) * length(ws6)
   
   for (w1 in ws1) {
@@ -84,7 +78,7 @@ find_hd <- function(a, b) {
         for (w4 in ws4) {
           one_iter_time = ((proc.time() - start_time)['elapsed'] / processed)
           print((no_iters - processed) * one_iter_time / 60)
-
+          
           for (w5 in ws5) {
             for (w6 in ws6) {
               # cat("\n")
@@ -95,7 +89,7 @@ find_hd <- function(a, b) {
               b2[, 4] = b2[, 4] * w4
               b2[, 5] = b2[, 5] * w5
               b2[, 6] = b2[, 6] * w6
-
+              
               hd_value = hd(b2)
               # print(hd_value)
               write(
@@ -105,9 +99,9 @@ find_hd <- function(a, b) {
                 append = TRUE,
                 sep = ', '
               )
-
+              
               processed = processed + 1
-
+              
               if (hd_value < best_hd) {
                 best_hd = hd_value
                 best_coeffs = c(w1, w2, w3, w4, w5, w6)
@@ -131,6 +125,12 @@ process_table <- function(path) {
   f[1] <- NULL
   m <- as.matrix(f)
   return (m[order(as.numeric(row.names(m))), ])
+}
+
+add_column <- function(df, colName, values) {
+  df <- cbind(df, values )
+  colnames(df)[length(colnames(df))] <- colName
+  return(df)
 }
 
 merge_by_id <- function(a, b){
@@ -193,6 +193,7 @@ if (head_no > 0) {
 
 g_train <- norm(g_train)
 
+
 write(
   c('slope', 'srtm', 'tpi', 'twi', 'coarse', 'stream', 'hdist'),
   file = out_file,
@@ -201,8 +202,90 @@ write(
   sep = ', '
 )
 
-ws = find_hd(c_train, g_train)
+#ws = find_hd(c_train, g_train)
+ws = c(0.23,	0.67,	0.6,	0.55,	0.69,	0.78)
+ws = ws / sum(ws)
 
+colnames(g_norm) <- c('n_slope', 'n_srtm', 'n_tpi', 'n_twi', 'n_coarse', 'n_stream')
+names(ws) <- c('n_slope', 'n_srtm', 'n_tpi', 'n_twi', 'n_coarse', 'n_stream')
+out = merge_by_id(out, g_norm)
+out <- cbind(out, test = row.names(out) %in% row.names(g_test))
+out <- cbind(out, component = row.names(out) %in% row.names(c))
+
+occurences <- data.frame()
+
+for (comp in colnames(c)) {
+  no_occ = nrow(na.omit(c_train[c_train[, comp] != 0,]))
+  occurences <- c(occurences, no_occ)
+  out <- add_column(out, comp, c_all_cadasters[,comp])
+}
+
+names(occurences) <-colnames(c)
+
+
+for (comp in colnames(c)) {
+  # mean values for each component in training dataset
+  cms = colMeans(g_norm[row.names(g_norm) %in% rownames(c_train[c_train[,comp] == 1,]), ])
+  
+  dist = 0
+  dist_w = 0
+  
+  for (cm in names(cms)) {
+    out <- add_column(out, paste(comp, cm, sep=""), cms[cm])
+    
+    diff = abs(cms[cm] - out[cm])
+    dist = dist + 1/6 * diff
+    dist_w = dist_w + ws[cm] * diff
+  }
+  
+  
+  out <- add_column(out, paste(comp, '_dist', sep=""), dist )
+  #out <- add_column(out, paste(comp, '_dist_w', sep=""), dist_w)
+  
+  # space for predictions
+  #out <- add_column(out, paste(comp, '_pred', sep=""), '')
+  
+  #out <- add_column(out, paste(comp, '_predicted', sep=""), '')
+  #out <- add_column(out, paste(comp, '_confusion', sep=""), '')
+}
+
+for (comp in colnames(c)) {
+  #out <- add_column(out, paste(comp, '_pred_w', sep=""), '')
+  out <- add_column(out, paste(comp, '_pred', sep=""), '')
+}
+
+out <- bind_rows(data.frame(occurences), out)
+out[, 'id'] = rownames(out)
+
+# only testing data
+out <- out[out[,'test'] == TRUE,]
+
+# bind occurences
+
+out <- out[, -grep("srtm$", colnames(out))]
+out <- out[, -grep("twi$", colnames(out))]
+out <- out[, -grep("tpi$", colnames(out))]
+out <- out[, -grep("stream$", colnames(out))]
+out <- out[, -grep("coarse$", colnames(out))]
+out <- out[, -grep("slope$", colnames(out))]
+#write.csv(out, file="cadasters_distances.csv")
+
+# order columns 
+#out <- out[ , order(names(out))]
+write.csv(out, file="out/test_2.csv")
+
+#out_t <- out_t[, -grep("srtm$", colnames(out_t))]
+#out_t <- out_t[, -grep("twi$", colnames(out_t))]
+#out_t <- out_t[, -grep("tpi$", colnames(out_t))]
+#out_t <- out_t[, -grep("stream$", colnames(out_t))]
+#out_t <- out_t[, -grep("coarse$", colnames(out_t))]
+#out_t <- out_t[, -grep("slope$", colnames(out_t))]
+
+#write.csv(out_t, file="out_test.csv")
+
+#colMeans(g[row.names(g) %in% rownames(c[c[,"X800"] == 1,]), ])
+
+#test_table = merge(c_test, g_test, by=0, all=TRUE)
 
 # testing data
 # c <- matrix(c(1,0, 1,0, 1,1, 0,1),ncol=2,byrow=TRUE)
@@ -213,14 +296,3 @@ ws = find_hd(c_train, g_train)
 #   1,4,1
 # ),ncol=3,byrow=TRUE)
 # g <- matrix(c(1.1,1.1,1, 1,1,1, 0.8,1,0, 1,1,0),ncol=3,byrow=TRUE)
-
-a <- matrix(c(
-  1,0,1,1,1,
-  1,1,1,0,0,
-  1,0,0,0,0,
-  0,1,0,0,0,
-  1,1,0,0,0,
-  0,0,0,0,0,
-  1,1,1,1,1,
-  1,0,0,0,0
-), ncol=5, byrow=TRUE)
