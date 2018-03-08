@@ -46,6 +46,10 @@ norm <- function(df) {
   #return(apply(df, 2, r01)) # minmax
 }
 
+r01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
 # loading datasets
 g <- process_table('data_geo.csv')
 c <- process_table('data_components.csv')
@@ -155,8 +159,8 @@ for (comp in colnames(c)) {
   
   
   
-  out <- add_column(out, paste(comp, '_dist', sep=""), d )
-  #out <- add_column(out, paste(comp, '_dist_w', sep=""), dw)
+  #out <- add_column(out, paste(comp, '_dist', sep=""), d )
+  out <- add_column(out, paste(comp, '_dist_w', sep=""), r01(dw))
   
   # space for predictions
   #out <- add_column(out, paste(comp, '_pred', sep=""), '')
@@ -177,14 +181,14 @@ for (comp in colnames(c)) {
 
 for (comp in colnames(c)) {
   #out <- add_column(out, paste(comp, '_pred_w', sep=""), '')
-  out <- add_column(out, paste(comp, '_pred', sep=""), '')
+  #out <- add_column(out, paste(comp, '_pred', sep=""), '')
 }
 
 
 out[, 'id'] = rownames(out)
 
 # only testing data
-out <- out[out[,'test'] == TRUE,]
+#out <- out[out[,'test'] == TRUE,]
 
 # bind occurences
 out <- bind_rows(data.frame(occurences), out)
@@ -200,7 +204,7 @@ out <- out[, -grep("slope$", colnames(out))]
 
 # order columns 
 #out <- out[ , order(names(out))]
-write.csv(out, file="out/test/median_euclid_t.csv")
+write.csv(out, file="out/all.csv")
 
 #out_t <- out_t[, -grep("srtm$", colnames(out_t))]
 #out_t <- out_t[, -grep("twi$", colnames(out_t))]
