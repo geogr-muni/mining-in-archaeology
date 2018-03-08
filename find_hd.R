@@ -39,27 +39,6 @@ find_hd <- function(a, b) {
     as.double(hdist(do_htable(ad, bd), normalize=TRUE, mode='graph', g1=c(1), g2=(2)))
     #as.double(gcor(do_htable(ad, bd), mode='graph', g1=c(1), g2=(2)))
   }
-  
-  vs = c(1:6)
-  
-  # for (v in vs) {
-  #   best_v = 99999999
-  #   #print(v  )
-  #   for (w in weights) {
-  #     b2 = b
-  #     b2[,v] = b2[,v] * w
-  #     hd_value = hd(b2)
-  #     #print(hd_value)
-  #     #cat("\n")
-  #     
-  #     
-  #     if (hd_value < best_v) {
-  #       best_v = hd_value
-  #       best_coeffs[v] = w
-  #     }
-  #   }
-  # }
-  
 
   processed = 0
   start_time = proc.time()
@@ -202,25 +181,3 @@ write(
 )
 
 ws = find_hd(c_train, g_train)
-
-
-# testing data
-# c <- matrix(c(1,0, 1,0, 1,1, 0,1),ncol=2,byrow=TRUE)
-# g <- matrix(c(
-#   6,2,3,
-#   5,2,1,
-#   5,5,4,
-#   1,4,1
-# ),ncol=3,byrow=TRUE)
-# g <- matrix(c(1.1,1.1,1, 1,1,1, 0.8,1,0, 1,1,0),ncol=3,byrow=TRUE)
-
-a <- matrix(c(
-  1,0,1,1,1,
-  1,1,1,0,0,
-  1,0,0,0,0,
-  0,1,0,0,0,
-  1,1,0,0,0,
-  0,0,0,0,0,
-  1,1,1,1,1,
-  1,0,0,0,0
-), ncol=5, byrow=TRUE)

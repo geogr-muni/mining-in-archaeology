@@ -6,11 +6,6 @@ library('sna')
 library('dplyr')
 library('matrixStats')
 
-out_file = 'out/blank.csv'
-head_no = 0
-no_iters = 10
-
-
 process_table <- function(path) {
   f <- read.csv(path,
                 stringsAsFactors = FALSE,
@@ -36,14 +31,9 @@ merge_by_id <- function(a, b){
   return (c)
 }
 
+# scaling
 norm <- function(df) {
-  # normalisation
   return(scale(df)) # zscore
-  
-  #r01 <- function(x) {
-  #  (x - min(x)) / (max(x) - min(x))
-  #}
-  #return(apply(df, 2, r01)) # minmax
 }
 
 r01 <- function(x) {
@@ -71,36 +61,8 @@ g_test = g[seq(1, nrow(g), 3), ]
 c_train = c[ !(row.names(c) %in% row.names(c_test)), ]
 g_train = g[ !(row.names(g) %in% row.names(g_test)), ]
 
-# c <- as.data.frame(c)
-# c$id <- rownames(c)
-
-# assign 0 for cadasters without localities
-# c_copy <- data.frame(id = rownames(g))
-# c2 <- dplyr::left_join(c_copy, c, by = "id")
-# rownames(c2) <- c2$id
-# c2[is.na(c2)] <- 0
-# c2$id <- NULL
-# c <- as.matrix(c2)
-
-# subsetting - testing purposes
-if (head_no > 0) {
-  c_train <- head(c_train, head_no)
-  g_train <- head(g_train, head_no)
-  c_test <- head(c_test, head_no)
-  g_test <- head(g_test, head_no)
-}
 
 g_train <- norm(g_train)
-
-
-write(
-  c('slope', 'srtm', 'tpi', 'twi', 'coarse', 'stream', 'hdist'),
-  file = out_file,
-  ncolumns = 7,
-  append = FALSE,
-  sep = ', '
-)
-
 
 
 #ws = find_hd(c_train, g_train)
@@ -149,8 +111,6 @@ for (comp in colnames(c)) {
     out <- add_column(out, paste(comp, cm, sep=""), cms[cm])
     
     diff = abs(cms[cm] - out[cm])
-    #d = d + 1/6 * diff
-    #dw = dw + ws[cm] * diff
     
     # euclidian distance in multidimensional space
     d = sqrt(d ^ 2 + (1/6 * diff) ^ 2 ) 
@@ -205,26 +165,3 @@ out <- out[, -grep("slope$", colnames(out))]
 # order columns 
 #out <- out[ , order(names(out))]
 write.csv(out, file="out/all.csv")
-
-#out_t <- out_t[, -grep("srtm$", colnames(out_t))]
-#out_t <- out_t[, -grep("twi$", colnames(out_t))]
-#out_t <- out_t[, -grep("tpi$", colnames(out_t))]
-#out_t <- out_t[, -grep("stream$", colnames(out_t))]
-#out_t <- out_t[, -grep("coarse$", colnames(out_t))]
-#out_t <- out_t[, -grep("slope$", colnames(out_t))]
-
-#write.csv(out_t, file="out_test.csv")
-
-#colMeans(g[row.names(g) %in% rownames(c[c[,"X800"] == 1,]), ])
-
-#test_table = merge(c_test, g_test, by=0, all=TRUE)
-
-# testing data
-# c <- matrix(c(1,0, 1,0, 1,1, 0,1),ncol=2,byrow=TRUE)
-# g <- matrix(c(
-#   6,2,3,
-#   5,2,1,
-#   5,5,4,
-#   1,4,1
-# ),ncol=3,byrow=TRUE)
-# g <- matrix(c(1.1,1.1,1, 1,1,1, 0.8,1,0, 1,1,0),ncol=3,byrow=TRUE)
