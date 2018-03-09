@@ -50,8 +50,8 @@ colQ1s <- function(data) sapply(data, quantile, probs=c(0.25), na.rm = TRUE)
 colQ3s <- function(data) sapply(data, quantile, probs=c(0.75), na.rm = TRUE)
 
 # loading datasets
-g <- process_table('data_geo.csv')
-c <- process_table('data_components.csv')
+g <- process_table('./data/geo.csv')
+c <- process_table('./data/components.csv')
 
 c_all_cadasters <- merge_by_id(g, c)
 
